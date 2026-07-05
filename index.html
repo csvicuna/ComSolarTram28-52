@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comunidad Solar Tramontana 28-52 — Simulador de Potencia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #EEF1EC;
+    --panel: #FFFFFF;
+    --ink: #1D2E2A;
+    --ink-soft: #4B5C57;
+    --line: #DDE3DC;
+    --gold: #E0A63A;
+    --gold-deep: #B9821F;
+    --teal: #1D3B36;
+    --teal-soft: #2E5850;
+    --clay: #B84B32;
+    --good: #3F7D5C;
+    --bad: #B84B32;
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Inter', system-ui, sans-serif;
+    line-height:1.5;
+  }
+  h1,h2,h3{ font-family:'Space Grotesk', sans-serif; margin:0 0 4px; letter-spacing:-0.01em;}
+  .mono{ font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  header.top{
+    background: linear-gradient(135deg, var(--teal) 0%, #12211E 100%);
+    color:#F3F0E8;
+    padding: 28px 24px 22px;
+    position:relative;
+    overflow:hidden;
+  }
+  header.top::before{
+    content:"";
+    position:absolute; right:-40px; top:-60px;
+    width:220px; height:220px; border-radius:50%;
+    background: radial-gradient(circle, rgba(224,166,58,0.45) 0%, rgba(224,166,58,0) 70%);
+  }
+  .grid-motif{
+    position:absolute; right:18px; bottom:12px;
+    display:grid; grid-template-columns:repeat(6,10px); grid-template-rows:repeat(3,10px);
+    gap:2px; opacity:0.5;
+  }
+  .grid-motif div{ background: var(--gold); border-radius:1px; }
+  header.top h1{ font-size:1.5rem; color:#fff; max-width:640px; }
+  header.top p{ margin:6px 0 0; color:#C9D3CE; font-size:0.92rem; max-width:560px;}
+
+  nav.tabs{
+    display:flex; gap:2px; background:var(--panel);
+    border-bottom:1px solid var(--line);
+    padding: 0 16px; overflow-x:auto;
+  }
+  nav.tabs button{
+    appearance:none; border:none; background:transparent;
+    padding:14px 16px; font-family:'Space Grotesk', sans-serif; font-size:0.88rem;
+    font-weight:600; color:var(--ink-soft); cursor:pointer; white-space:nowrap;
+    border-bottom:3px solid transparent;
+  }
+  nav.tabs button.active{ color:var(--teal); border-bottom-color:var(--gold); }
+  nav.tabs button:focus-visible{ outline:2px solid var(--gold-deep); outline-offset:-2px; }
+
+  main{ max-width:980px; margin:0 auto; padding:20px 16px 60px; }
+  section.view{ display:none; }
+  section.view.active{ display:block; animation: fade .25s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;} }
+
+  .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:18px; }
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px 16px;
+  }
+  .card .num{ font-family:'IBM Plex Mono', monospace; font-size:1.5rem; font-weight:600; color:var(--teal); }
+  .card .lbl{ font-size:0.78rem; color:var(--ink-soft); margin-top:2px; }
+  .card.gold .num{ color:var(--gold-deep); }
+
+  .meter{ height:14px; background:#E4E8E1; border-radius:7px; overflow:hidden; border:1px solid var(--line); }
+  .meter > div{ height:100%; background:linear-gradient(90deg, var(--gold-deep), var(--gold)); }
+  .meter.over > div{ background:linear-gradient(90deg, var(--clay), #D96B4A); }
+
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:16px; margin-bottom:16px;
+  }
+  .panel h2{ font-size:1.05rem; color:var(--teal); }
+  .panel .hint{ font-size:0.83rem; color:var(--ink-soft); margin:4px 0 12px; }
+
+  .toolbar{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+  select, input[type=number], input[type=text]{
+    font-family:'Inter', sans-serif; font-size:0.88rem; padding:8px 10px;
+    border:1px solid var(--line); border-radius:6px; background:#FBFAF7; color:var(--ink);
+  }
+  input[type=number]{ width:120px; font-family:'IBM Plex Mono', monospace; }
+  label.field{ font-size:0.82rem; color:var(--ink-soft); display:block; margin-bottom:4px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:0.86rem; }
+  th, td{ text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); }
+  th{ color:var(--ink-soft); font-weight:600; font-size:0.76rem; text-transform:uppercase; letter-spacing:0.03em; }
+  tbody tr:hover{ background:#F5F6F2; }
+  td.num, th.num{ text-align:right; font-family:'IBM Plex Mono', monospace; }
+  .tag{ font-size:0.72rem; padding:2px 7px; border-radius:20px; font-weight:600; }
+  .tag.ind{ background:#E7EEE9; color:var(--teal-soft); }
+  .tag.com{ background:#F3E9D5; color:var(--gold-deep); }
+  .tag.new{ background:#F6E2DA; color:var(--clay); }
+
+  .bars{ display:flex; align-items:flex-end; gap:6px; height:120px; margin:10px 0 6px; padding:0 2px; overflow-x:auto; }
+  .bar-col{ display:flex; flex-direction:column; align-items:center; min-width:26px; }
+  .bar{ width:18px; background:linear-gradient(180deg, var(--gold), var(--gold-deep)); border-radius:3px 3px 0 0; }
+  .bar-col .bl{ font-size:0.65rem; color:var(--ink-soft); margin-top:3px; }
+
+  .radio-row{ display:flex; gap:14px; margin-bottom:12px; }
+  .radio-row label{ font-size:0.88rem; display:flex; align-items:center; gap:6px; cursor:pointer; }
+
+  .result-box{
+    margin-top:14px; padding:14px; border-radius:8px; background:#EFF3EE; border:1px solid var(--line);
+  }
+  .result-box .big{ font-family:'IBM Plex Mono', monospace; font-size:1.6rem; font-weight:600; color:var(--teal); }
+  .result-box .cost{ color:var(--gold-deep); font-weight:600; }
+
+  .increase-row, .new-row{
+    display:grid; grid-template-columns: 1fr 1fr 1fr auto; gap:10px; align-items:end;
+    padding:10px 0; border-bottom:1px dashed var(--line);
+  }
+  .increase-row:last-child, .new-row:last-child{ border-bottom:none; }
+
+  .status-pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:20px; font-size:0.8rem; font-weight:600; }
+  .status-pill.ok{ background:#E4F0E8; color:var(--good); }
+  .status-pill.warn{ background:#F9E9DE; color:var(--clay); }
+
+  ul.rules{ padding-left:18px; font-size:0.9rem; }
+  ul.rules li{ margin-bottom:8px; }
+
+  .footer-note{ font-size:0.78rem; color:var(--ink-soft); margin-top:20px; text-align:center; }
+
+  @media (max-width: 640px){
+    .increase-row, .new-row{ grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1>Comunidad Solar · Tramontana 28-52</h1>
+  <p>Simulador de potencia fotovoltaica comunitaria. Consulta la situación actual, calcula tu potencia recomendada y simula el efecto de las nuevas incorporaciones.</p>
+  <div class="grid-motif">
+    <div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div>
+    <div></div><div></div><div></div><div></div><div></div><div></div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="actual">Situación actual</button>
+  <button class="tab-btn" data-tab="calc">Calculadora personal</button>
+  <button class="tab-btn" data-tab="sim">Simulación de ampliación</button>
+  <button class="tab-btn" data-tab="normas">Normativa y costes</button>
+</nav>
+
+<main>
+
+  <!-- TAB 1: SITUACIÓN ACTUAL -->
+  <section class="view active" id="view-actual">
+    <div class="cards">
+      <div class="card gold"><div class="num" id="kpi-total">—</div><div class="lbl">kWp instalados (total)</div></div>
+      <div class="card"><div class="num" id="kpi-ind">98</div><div class="lbl">CUPs individuales</div></div>
+      <div class="card"><div class="num" id="kpi-com">16</div><div class="lbl">CUPs comunitarios</div></div>
+      <div class="card"><div class="num" id="kpi-cups">114</div><div class="lbl">CUPs totales activos</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Potencia instalada por portal</h2>
+      <p class="hint">Suma de kWp asignados a cada portal (individuales + comunitarios), sin nuevas incorporaciones ni ampliaciones.</p>
+      <div class="bars" id="bars-portal"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Detalle de los 114 CUPs actuales</h2>
+      <p class="hint">Estos datos ya suman los 182,6 kWp instalados hoy. No incluye a los 5 nuevos vecinos ni las ampliaciones solicitadas (ver pestaña de simulación).</p>
+      <div class="toolbar">
+        <div>
+          <label class="field">Filtrar por portal</label>
+          <select id="filter-portal"><option value="">Todos</option></select>
+        </div>
+        <div>
+          <label class="field">Filtrar por tipo</label>
+          <select id="filter-tipo">
+            <option value="">Todos</option>
+            <option value="individual">Individual</option>
+            <option value="comunitario">Comunitario</option>
+          </select>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Portal</th><th>Piso/Uso</th><th>Tipo</th><th class="num">Consumo anual (kWh)</th><th class="num">kWp asignados</th></tr></thead>
+        <tbody id="tbody-actual"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- TAB 2: CALCULADORA PERSONAL -->
+  <section class="view" id="view-calc">
+    <div class="panel">
+      <h2>¿Cuánta potencia necesito?</h2>
+      <p class="hint">
+        Fórmula acordada: divide tu energía anual entre 2.000. Si el resultado es menor de 1, redondea a 1 kWp.
+        Si está entre 1 y 1,2 &rarr; 1,2 kWp; entre 1,2 y 1,4 &rarr; 1,4 kWp, y así sucesivamente en tramos de 0,2 kWp.
+      </p>
+
+      <div class="radio-row">
+        <label><input type="radio" name="tieneplacas" value="no" checked> Todavía no tengo placas</label>
+        <label><input type="radio" name="tieneplacas" value="si"> Ya tengo placas instaladas</label>
+      </div>
+
+      <div id="calc-sin">
+        <label class="field">Consumo anual (kWh) — el que aparece en tu factura</label>
+        <input type="number" id="input-consumo" placeholder="Ej. 3200" min="0">
+      </div>
+
+      <div id="calc-con" style="display:none;">
+        <div style="display:flex; gap:16px; flex-wrap:wrap;">
+          <div>
+            <label class="field">Energía demandada de red (kWh/año)</label>
+            <input type="number" id="input-demandada" placeholder="Ej. 1800" min="0">
+          </div>
+          <div>
+            <label class="field">Energía autoconsumida (kWh/año)</label>
+            <input type="number" id="input-autoconsumo" placeholder="Ej. 900" min="0">
+          </div>
+        </div>
+      </div>
+
+      <div class="result-box" id="calc-result">
+        <div class="lbl" style="color:var(--ink-soft); font-size:0.85rem;">Introduce tu consumo para ver el resultado.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TAB 3: SIMULACIÓN -->
+  <section class="view" id="view-sim">
+    <div class="panel">
+      <h2>Resumen de la propuesta</h2>
+      <p class="hint">Ajusta los valores de los nuevos vecinos y de las ampliaciones para ver el efecto sobre el total de la comunidad.</p>
+      <div class="cards">
+        <div class="card"><div class="num mono" id="sim-actual">—</div><div class="lbl">kWp actuales</div></div>
+        <div class="card gold"><div class="num mono" id="sim-nuevo">—</div><div class="lbl">kWp propuestos (total)</div></div>
+        <div class="card"><div class="num mono" id="sim-incremento">—</div><div class="lbl">Incremento (kWp / %)</div></div>
+        <div class="card"><div class="num mono" id="sim-coste">—</div><div class="lbl">Coste estimado nueva potencia</div></div>
+      </div>
+      <div style="margin-top:6px;">
+        <div class="meter" id="sim-meter"><div style="width:0%"></div></div>
+      </div>
+      <div style="margin-top:12px;" id="sim-status"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Nuevos vecinos que quieren unirse (5)</h2>
+      <p class="hint">Introduce el consumo anual de cada uno para obtener una sugerencia de potencia, o edita directamente el campo de kWp deseados.</p>
+      <div id="new-neighbors"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Vecinos que solicitan ampliar potencia (4)</h2>
+      <p class="hint">Potencia actual ya instalada y potencia nueva deseada. El nuevo valor no puede ser inferior al actual.</p>
+      <div id="increase-neighbors"></div>
+    </div>
+  </section>
+
+  <!-- TAB 4: NORMATIVA -->
+  <section class="view" id="view-normas">
+    <div class="panel">
+      <h2>Reglas internas para ampliar la instalación</h2>
+      <ul class="rules">
+        <li>Se necesita la solicitud conjunta de al menos <strong>10 nuevos vecinos</strong>.</li>
+        <li>La nueva potencia solicitada debe ser de al menos el <strong>10% de la potencia actual</strong>, es decir, un mínimo de <strong class="mono">18,26 kWp</strong> sobre los 182,6 kWp instalados.</li>
+        <li>Los nuevos propietarios adheridos asumen todos los gastos de su parte de la instalación: equipos adicionales, tramitación, legalización y montaje.</li>
+        <li>Actualmente hay <strong>5 nuevos vecinos</strong> interesados: para cumplir la norma de los 10 solicitantes, harían falta al menos 5 más.</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h2>Estimación de coste</h2>
+      <p style="font-size:0.9rem;">Como referencia de cálculo, se estima un coste aproximado de <strong>1.000 € por kWp</strong> (IVA incluido). Por ejemplo, quien necesite 1,5 kWp debería prever una inversión aproximada de 1.500 €.</p>
+      <p style="font-size:0.9rem; color:var(--ink-soft);">Este es solo un valor orientativo para planificar. El precio final real será el presupuesto que entregue la empresa instaladora, dividido entre los kWp totales de la ampliación.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Bonificaciones IBI / Deducciones IRPF</h2>
+      <p style="font-size:0.9rem;"><strong>IBI Pozuelo de Alarcón:</strong> bonificación del 50% de la cuota durante 3 años, aplicable solo a los <em>nuevos</em> inversores. Para el resto, estudio caso por caso.</p>
+      <p style="font-size:0.9rem;"><strong>IRPF (deducción por instalación fotovoltaica):</strong> desgrava entre el 20% y el 60% del coste neto (descontando subvenciones). En vivienda particular, lo habitual es el <strong>40%</strong> (base máx. 7.500 €/año &rarr; hasta 3.000 € de ahorro fiscal) si se reduce &ge;30% el consumo de energía primaria no renovable o se alcanza calificación A/B. Tramo del 20% (base máx. 5.000 €) para reducciones menores de demanda térmica; tramo del 60% (base máx. 5.000 €/año, hasta 15.000 € acumulados) si es rehabilitación energética de todo el edificio.</p>
+      <p style="font-size:0.9rem; color:var(--ink-soft);">Requiere 2 Certificados de Eficiencia Energética (antes y después de la obra) ante la <a href="https://sede.agenciatributaria.gob.es/" target="_blank" rel="noopener">Agencia Tributaria</a>. Obra y certificado final antes del <strong>31/12/2026</strong> (el excedente no deducido se puede aplicar los 4 ejercicios siguientes en reformas comunitarias). Todos los pagos a la instaladora deben ser bancarios: efectivo prohibido.</p>
+    </div>
+
+    <div class="panel">
+      <h2>Fórmula de cálculo de potencia necesaria</h2>
+      <p style="font-size:0.9rem;">
+        <span class="mono">kWp necesarios = redondeo por tramos de (consumo anual kWh ÷ 2.000)</span><br>
+        Tramos: si el resultado es &le;1 &rarr; 1,0 kWp · (1 – 1,2] &rarr; 1,2 kWp · (1,2 – 1,4] &rarr; 1,4 kWp · (1,4 – 1,6] &rarr; 1,6 kWp, y así sucesivamente cada 0,2 kWp.
+      </p>
+      <p style="font-size:0.9rem;">Quien ya tiene placas debe sumar <em>energía demandada de red + energía autoconsumida</em> antes de aplicar la misma fórmula.</p>
+    </div>
+  </section>
+
+</main>
+
+<p class="footer-note">Mancomunidad de Prado de Somosaguas · Datos de 2025–2026 · Herramienta de simulación, no vinculante</p>
+
+<script>
+const DATA = [{"portal": "34", "piso": "2-D", "consumo": null, "coef": 0, "tipo": "nuevo"}, {"portal": "34", "piso": "3-B", "consumo": null, "coef": 0, "tipo": "nuevo"}, {"portal": "36", "piso": "3-A", "consumo": null, "coef": 0, "tipo": "nuevo"}, {"portal": "42", "piso": "4-A", "consumo": null, "coef": 0, "tipo": "nuevo"}, {"portal": "44", "piso": "3-C", "consumo": null, "coef": 0, "tipo": "nuevo"}, {"portal": "30", "piso": "3-D", "consumo": 2158.0, "coef": 1.0, "tipo": "individual"}, {"portal": "32", "piso": "1-A", "consumo": 1468.0, "coef": 1.0, "tipo": "individual"}, {"portal": "32", "piso": "4-B", "consumo": 2442.0, "coef": 1.0, "tipo": "individual"}, {"portal": "36", "piso": "1-C", "consumo": 2214.0, "coef": 1.0, "tipo": "individual"}, {"portal": "36", "piso": "2-C", "consumo": 1490.0, "coef": 1.0, "tipo": "individual"}, {"portal": "48", "piso": "4-C", "consumo": 1437.0, "coef": 1.0, "tipo": "individual"}, {"portal": "50", "piso": "3-B", "consumo": 2509.0, "coef": 1.0, "tipo": "individual"}, {"portal": "52", "piso": "2-D", "consumo": 1856.0, "coef": 1.0, "tipo": "individual"}, {"portal": "52", "piso": "4-C", "consumo": 2443.0, "coef": 1.0, "tipo": "individual"}, {"portal": "52", "piso": "4-D", "consumo": 1665.0, "coef": 1.0, "tipo": "individual"}, {"portal": "40", "piso": "1-B", "consumo": 2150.0, "coef": 1.0, "tipo": "individual"}, {"portal": "44", "piso": "1-A", "consumo": 3011.0, "coef": 1.2, "tipo": "individual"}, {"portal": "44", "piso": "4-D", "consumo": 1728.0, "coef": 1.2, "tipo": "individual"}, {"portal": "46", "piso": "2-D", "consumo": 2759.0, "coef": 1.2, "tipo": "individual"}, {"portal": "46", "piso": "3-B", "consumo": 2863.0, "coef": 1.2, "tipo": "individual"}, {"portal": "48", "piso": "1-A", "consumo": 2285.0, "coef": 1.2, "tipo": "individual"}, {"portal": "48", "piso": "4-D", "consumo": 2139.0, "coef": 1.2, "tipo": "individual"}, {"portal": "52", "piso": "2-C", "consumo": 1972.0, "coef": 1.2, "tipo": "individual"}, {"portal": "52", "piso": "3-A", "consumo": 3511.0, "coef": 1.2, "tipo": "individual"}, {"portal": "30", "piso": "1-B", "consumo": 2719.0, "coef": 1.2, "tipo": "individual"}, {"portal": "30", "piso": "1-C", "consumo": 3133.0, "coef": 1.2, "tipo": "individual"}, {"portal": "30", "piso": "1-D", "consumo": 1807.0, "coef": 1.2, "tipo": "individual"}, {"portal": "30", "piso": "2-A", "consumo": 1441.0, "coef": 1.2, "tipo": "individual"}, {"portal": "30", "piso": "3-A", "consumo": 2394.0, "coef": 1.2, "tipo": "individual"}, {"portal": "30", "piso": "4-C", "consumo": 1293.0, "coef": 1.2, "tipo": "individual"}, {"portal": "30", "piso": "4-D", "consumo": 1150.0, "coef": 1.2, "tipo": "individual"}, {"portal": "32", "piso": "2-C", "consumo": 3089.0, "coef": 1.2, "tipo": "individual"}, {"portal": "32", "piso": "4-D", "consumo": 93.0, "coef": 1.2, "tipo": "individual"}, {"portal": "34", "piso": "4-D", "consumo": 1764.0, "coef": 1.2, "tipo": "individual"}, {"portal": "36", "piso": "1-A", "consumo": 2800.0, "coef": 1.2, "tipo": "individual"}, {"portal": "36", "piso": "1-D", "consumo": 2613.0, "coef": 1.2, "tipo": "individual"}, {"portal": "38", "piso": "1-A", "consumo": 2454.0, "coef": 1.2, "tipo": "individual"}, {"portal": "40", "piso": "1-A", "consumo": 1754.0, "coef": 1.2, "tipo": "individual"}, {"portal": "40", "piso": "3-D", "consumo": 2632.0, "coef": 1.2, "tipo": "individual"}, {"portal": "40", "piso": "4-A", "consumo": 1944.0, "coef": 1.2, "tipo": "individual"}, {"portal": "40", "piso": "4-B", "consumo": 2236.0, "coef": 1.2, "tipo": "individual"}, {"portal": "42", "piso": "1-C", "consumo": 2568.0, "coef": 1.2, "tipo": "individual"}, {"portal": "36", "piso": "4-C", "consumo": 2664.0, "coef": 1.4, "tipo": "individual"}, {"portal": "38", "piso": "1-B", "consumo": 3375.0, "coef": 1.4, "tipo": "individual"}, {"portal": "38", "piso": "4-D", "consumo": 2877.0, "coef": 1.4, "tipo": "individual"}, {"portal": "40", "piso": "2-B", "consumo": 3571.0, "coef": 1.4, "tipo": "individual"}, {"portal": "42", "piso": "4-B", "consumo": 2741.0, "coef": 1.4, "tipo": "individual"}, {"portal": "44", "piso": "2-D", "consumo": 3024.0, "coef": 1.4, "tipo": "individual"}, {"portal": "44", "piso": "3-D", "consumo": 3628.0, "coef": 1.4, "tipo": "individual"}, {"portal": "46", "piso": "1-A", "consumo": 3440.0, "coef": 1.4, "tipo": "individual"}, {"portal": "46", "piso": "1-B", "consumo": 3423.0, "coef": 1.4, "tipo": "individual"}, {"portal": "46", "piso": "1-D", "consumo": 3108.0, "coef": 1.4, "tipo": "individual"}, {"portal": "48", "piso": "2-A", "consumo": 3014.0, "coef": 1.4, "tipo": "individual"}, {"portal": "48", "piso": "3-C", "consumo": 2195.0, "coef": 1.4, "tipo": "individual"}, {"portal": "50", "piso": "1-C", "consumo": 2975.0, "coef": 1.4, "tipo": "individual"}, {"portal": "50", "piso": "2-A", "consumo": 2980.0, "coef": 1.4, "tipo": "individual"}, {"portal": "50", "piso": "4-B", "consumo": 3673.0, "coef": 1.4, "tipo": "individual"}, {"portal": "52", "piso": "1-B", "consumo": 3316.0, "coef": 1.4, "tipo": "individual"}, {"portal": "28", "piso": "3-A", "consumo": 3286.0, "coef": 1.4, "tipo": "individual"}, {"portal": "32", "piso": "1-B", "consumo": 1942.0, "coef": 1.4, "tipo": "individual"}, {"portal": "32", "piso": "2-A", "consumo": 3009.0, "coef": 1.4, "tipo": "individual"}, {"portal": "32", "piso": "1-D", "consumo": 4322.0, "coef": 1.52, "tipo": "individual"}, {"portal": "38", "piso": "2-A", "consumo": 3286.0, "coef": 1.6, "tipo": "individual"}, {"portal": "38", "piso": "3-D", "consumo": 675.0, "coef": 1.6, "tipo": "individual"}, {"portal": "38", "piso": "4-A", "consumo": 3731.0, "coef": 1.6, "tipo": "individual"}, {"portal": "40", "piso": "1-C", "consumo": 4121.0, "coef": 1.6, "tipo": "individual"}, {"portal": "40", "piso": "2-C", "consumo": 3853.0, "coef": 1.6, "tipo": "individual"}, {"portal": "40", "piso": "3-B", "consumo": 4056.0, "coef": 1.6, "tipo": "individual"}, {"portal": "44", "piso": "4-A", "consumo": 3768.0, "coef": 1.6, "tipo": "individual"}, {"portal": "50", "piso": "2-B", "consumo": 3816.0, "coef": 1.6, "tipo": "individual"}, {"portal": "50", "piso": "3-A", "consumo": 2648.0, "coef": 1.6, "tipo": "individual"}, {"portal": "50", "piso": "4-C", "consumo": 3026.0, "coef": 1.6, "tipo": "individual"}, {"portal": "52", "piso": "4-A", "consumo": 2724.0, "coef": 1.6, "tipo": "individual"}, {"portal": "52", "piso": "4-B", "consumo": 3712.0, "coef": 1.6, "tipo": "individual"}, {"portal": "32", "piso": "2-D", "consumo": 3294.0, "coef": 1.6, "tipo": "individual"}, {"portal": "36", "piso": "2-A", "consumo": 1475.0, "coef": 1.63, "tipo": "individual"}, {"portal": "28", "piso": "3-C", "consumo": 4859.0, "coef": 1.72, "tipo": "individual"}, {"portal": "38", "piso": "2-D", "consumo": 2903.0, "coef": 1.8, "tipo": "individual"}, {"portal": "38", "piso": "4-B", "consumo": 2687.0, "coef": 1.8, "tipo": "individual"}, {"portal": "38", "piso": "4-C", "consumo": 3470.0, "coef": 1.8, "tipo": "individual"}, {"portal": "40", "piso": "2-A", "consumo": 4280.0, "coef": 1.8, "tipo": "individual"}, {"portal": "40", "piso": "3-A", "consumo": 1245.0, "coef": 1.8, "tipo": "individual"}, {"portal": "42", "piso": "2-C", "consumo": 4963.0, "coef": 1.8, "tipo": "individual"}, {"portal": "42", "piso": "3-C", "consumo": 4616.0, "coef": 1.8, "tipo": "individual"}, {"portal": "44", "piso": "2-C", "consumo": 1284.0, "coef": 1.8, "tipo": "individual"}, {"portal": "46", "piso": "2-A", "consumo": 4376.0, "coef": 1.8, "tipo": "individual"}, {"portal": "46", "piso": "2-B", "consumo": 2298.0, "coef": 1.8, "tipo": "individual"}, {"portal": "46", "piso": "3-C", "consumo": 2595.0, "coef": 1.8, "tipo": "individual"}, {"portal": "46", "piso": "4-B", "consumo": 3492.0, "coef": 1.8, "tipo": "individual"}, {"portal": "50", "piso": "1-A", "consumo": 2873.0, "coef": 1.8, "tipo": "individual"}, {"portal": "50", "piso": "4-A", "consumo": 2450.0, "coef": 1.8, "tipo": "individual"}, {"portal": "28", "piso": "1-B", "consumo": 5901.0, "coef": 1.8, "tipo": "individual"}, {"portal": "30", "piso": "2-B", "consumo": 3000.0, "coef": 1.8, "tipo": "individual"}, {"portal": "32", "piso": "4-A", "consumo": 4733.0, "coef": 1.8, "tipo": "individual"}, {"portal": "34", "piso": "2-A", "consumo": 3088.0, "coef": 1.8, "tipo": "individual"}, {"portal": "50", "piso": "2-C", "consumo": 5444.0, "coef": 1.85, "tipo": "individual"}, {"portal": "50", "piso": "2-D", "consumo": 5534.0, "coef": 1.96, "tipo": "individual"}, {"portal": "44", "piso": "2-A", "consumo": 3184.0, "coef": 2.0, "tipo": "individual"}, {"portal": "36", "piso": "4-A", "consumo": 4969.0, "coef": 2.0, "tipo": "individual"}, {"portal": "36", "piso": "4-D", "consumo": 4350.0, "coef": 2.0, "tipo": "individual"}, {"portal": "38", "piso": "3-A", "consumo": 3856.0, "coef": 2.0, "tipo": "individual"}, {"portal": "46", "piso": "4-C", "consumo": 6237.0, "coef": 2.18, "tipo": "individual"}, {"portal": "46", "piso": "4-A", "consumo": 8054.0, "coef": 2.87, "tipo": "individual"}, {"portal": "28", "piso": "B", "consumo": 4958.0, "coef": 2.0, "tipo": "comunitario"}, {"portal": "28", "piso": "G", "consumo": 4648.0, "coef": 2.4, "tipo": "comunitario"}, {"portal": "28", "piso": "ILUM", "consumo": 27141.0, "coef": 10.14, "tipo": "comunitario"}, {"portal": "30", "piso": "B", "consumo": 4405.0, "coef": 1.8, "tipo": "comunitario"}, {"portal": "32", "piso": "B", "consumo": 4327.0, "coef": 1.8, "tipo": "comunitario"}, {"portal": "34", "piso": "B", "consumo": 4345.0, "coef": 1.8, "tipo": "comunitario"}, {"portal": "36", "piso": "B", "consumo": 3917.0, "coef": 1.8, "tipo": "comunitario"}, {"portal": "38", "piso": "B", "consumo": 3682.0, "coef": 1.8, "tipo": "comunitario"}, {"portal": "40", "piso": "B", "consumo": 3985.0, "coef": 1.8, "tipo": "comunitario"}, {"portal": "42", "piso": "B", "consumo": 5846.0, "coef": 1.8, "tipo": "comunitario"}, {"portal": "42", "piso": "G", "consumo": 11223.0, "coef": 2.2, "tipo": "comunitario"}, {"portal": "44", "piso": "B", "consumo": 2989.0, "coef": 1.9, "tipo": "comunitario"}, {"portal": "46", "piso": "B", "consumo": 5743.0, "coef": 1.92, "tipo": "comunitario"}, {"portal": "48", "piso": "B", "consumo": 6681.0, "coef": 1.92, "tipo": "comunitario"}, {"portal": "50", "piso": "B", "consumo": 4276.0, "coef": 1.9, "tipo": "comunitario"}, {"portal": "52", "piso": "B", "consumo": 3626.0, "coef": 1.9, "tipo": "comunitario"}]
+;
+
+function calcKwp(x){
+  if (x <= 1) return 1.0;
+  const step = Math.ceil((x - 1) / 0.2 - 1e-9) * 0.2 + 1;
+  return Math.round(step * 10) / 10;
+}
+function fmtKwp(v){ return v.toLocaleString('es-ES', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function fmtKwh(v){ return v==null ? '—' : v.toLocaleString('es-ES'); }
+function fmtEur(v){ return v.toLocaleString('es-ES', {minimumFractionDigits:0, maximumFractionDigits:0}) + ' €'; }
+
+// ---------- Tabs ----------
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('view-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+// ---------- Tab 1: Situación actual ----------
+const existentes = DATA.filter(r => r.tipo !== 'nuevo');
+const totalActual = existentes.reduce((s,r)=> s + r.coef, 0);
+
+document.getElementById('kpi-total').textContent = fmtKwp(totalActual) + ' kWp';
+
+const portalTotals = {};
+existentes.forEach(r=>{
+  portalTotals[r.portal] = (portalTotals[r.portal]||0) + r.coef;
+});
+const portalOrder = Object.keys(portalTotals).sort((a,b)=> parseInt(a)-parseInt(b));
+const maxPortal = Math.max(...Object.values(portalTotals));
+
+const barsEl = document.getElementById('bars-portal');
+portalOrder.forEach(p=>{
+  const v = portalTotals[p];
+  const col = document.createElement('div');
+  col.className = 'bar-col';
+  const h = Math.max(4, Math.round((v/maxPortal)*100));
+  col.innerHTML = `<div title="Portal ${p}: ${fmtKwp(v)} kWp" class="bar" style="height:${h}px"></div><div class="bl">${p}</div>`;
+  barsEl.appendChild(col);
+});
+
+const filterPortal = document.getElementById('filter-portal');
+portalOrder.forEach(p=>{
+  const opt = document.createElement('option'); opt.value = p; opt.textContent = 'Portal ' + p;
+  filterPortal.appendChild(opt);
+});
+
+function renderTablaActual(){
+  const fp = filterPortal.value;
+  const ft = document.getElementById('filter-tipo').value;
+  const tbody = document.getElementById('tbody-actual');
+  tbody.innerHTML = '';
+  existentes
+    .filter(r => (!fp || r.portal===fp) && (!ft || r.tipo===ft))
+    .sort((a,b)=> parseInt(a.portal)-parseInt(b.portal) || a.piso.localeCompare(b.piso))
+    .forEach(r=>{
+      const tr = document.createElement('tr');
+      const tagClass = r.tipo === 'individual' ? 'ind' : 'com';
+      const tagLabel = r.tipo === 'individual' ? 'Individual' : 'Comunitario';
+      tr.innerHTML = `<td>${r.portal}</td><td>${r.piso}</td><td><span class="tag ${tagClass}">${tagLabel}</span></td>
+        <td class="num">${fmtKwh(r.consumo)}</td><td class="num">${fmtKwp(r.coef)}</td>`;
+      tbody.appendChild(tr);
+    });
+}
+filterPortal.addEventListener('change', renderTablaActual);
+document.getElementById('filter-tipo').addEventListener('change', renderTablaActual);
+renderTablaActual();
+
+// ---------- Tab 2: Calculadora personal ----------
+document.querySelectorAll('input[name=tieneplacas]').forEach(r=>{
+  r.addEventListener('change', ()=>{
+    const tienePlacas = document.querySelector('input[name=tieneplacas]:checked').value === 'si';
+    document.getElementById('calc-sin').style.display = tienePlacas ? 'none' : 'block';
+    document.getElementById('calc-con').style.display = tienePlacas ? 'block' : 'none';
+    actualizarCalculadora();
+  });
+});
+document.getElementById('input-consumo').addEventListener('input', actualizarCalculadora);
+document.getElementById('input-demandada').addEventListener('input', actualizarCalculadora);
+document.getElementById('input-autoconsumo').addEventListener('input', actualizarCalculadora);
+
+function actualizarCalculadora(){
+  const tienePlacas = document.querySelector('input[name=tieneplacas]:checked').value === 'si';
+  let consumo;
+  if (tienePlacas){
+    const d = parseFloat(document.getElementById('input-demandada').value) || 0;
+    const a = parseFloat(document.getElementById('input-autoconsumo').value) || 0;
+    consumo = d + a;
+  } else {
+    consumo = parseFloat(document.getElementById('input-consumo').value) || 0;
+  }
+  const box = document.getElementById('calc-result');
+  if (consumo <= 0){
+    box.innerHTML = '<div class="lbl" style="color:var(--ink-soft); font-size:0.85rem;">Introduce tu consumo para ver el resultado.</div>';
+    return;
+  }
+  const kwp = calcKwp(consumo / 2000);
+  const coste = kwp * 1000;
+  box.innerHTML = `
+    <div style="font-size:0.85rem; color:var(--ink-soft); margin-bottom:4px;">Consumo total considerado: <span class="mono">${fmtKwh(consumo)} kWh/año</span></div>
+    <div class="big">${fmtKwp(kwp)} kWp recomendados</div>
+    <div style="margin-top:6px; font-size:0.9rem;">Inversión estimada: <span class="cost mono">${fmtEur(coste)}</span> (IVA incluido, orientativo a 1.000 €/kWp)</div>
+  `;
+}
+actualizarCalculadora();
+
+// ---------- Tab 3: Simulación ----------
+const nuevosBase = DATA.filter(r => r.tipo === 'nuevo');
+const incrementosBase = [
+  {portal:'30', piso:'1-D', actual:1.20},
+  {portal:'34', piso:'4-D', actual:1.20},
+  {portal:'50', piso:'2-A', actual:1.40},
+  {portal:'40', piso:'3-B', actual:1.60},
+];
+
+const newContainer = document.getElementById('new-neighbors');
+nuevosBase.forEach((n, idx)=>{
+  const row = document.createElement('div');
+  row.className = 'new-row';
+  row.innerHTML = `
+    <div><label class="field">Portal ${n.portal} · ${n.piso}</label><span style="font-size:0.8rem; color:var(--ink-soft);">Vecino nuevo</span></div>
+    <div><label class="field">Consumo estimado (kWh/año)</label><input type="number" class="new-consumo" data-idx="${idx}" min="0" placeholder="Opcional"></div>
+    <div><label class="field">kWp que solicita</label><input type="number" class="new-kwp" data-idx="${idx}" min="0" step="0.2" value="0"></div>
+    <div><span class="tag new">Nuevo</span></div>
+  `;
+  newContainer.appendChild(row);
+});
+
+const incContainer = document.getElementById('increase-neighbors');
+incrementosBase.forEach((inc, idx)=>{
+  const row = document.createElement('div');
+  row.className = 'increase-row';
+  row.innerHTML = `
+    <div><label class="field">Portal ${inc.portal} · ${inc.piso}</label><span style="font-size:0.8rem; color:var(--ink-soft);">Actual: ${fmtKwp(inc.actual)} kWp</span></div>
+    <div><label class="field">Nueva potencia deseada (kWp)</label><input type="number" class="inc-kwp" data-idx="${idx}" min="${inc.actual}" step="0.2" value="${inc.actual}"></div>
+    <div><label class="field">Incremento</label><div class="mono inc-delta" data-idx="${idx}" style="padding-top:8px;">+0,00 kWp</div></div>
+    <div></div>
+  `;
+  incContainer.appendChild(row);
+});
+
+document.querySelectorAll('.new-consumo').forEach(inp=>{
+  inp.addEventListener('input', (e)=>{
+    const v = parseFloat(e.target.value) || 0;
+    if (v > 0){
+      const kwp = calcKwp(v/2000);
+      const idx = e.target.dataset.idx;
+      document.querySelector(`.new-kwp[data-idx="${idx}"]`).value = kwp;
+    }
+    recalcularSimulacion();
+  });
+});
+document.querySelectorAll('.new-kwp').forEach(inp=> inp.addEventListener('input', recalcularSimulacion));
+document.querySelectorAll('.inc-kwp').forEach(inp=>{
+  inp.addEventListener('input', (e)=>{
+    const idx = e.target.dataset.idx;
+    const base = incrementosBase[idx].actual;
+    let v = parseFloat(e.target.value);
+    if (isNaN(v) || v < base) v = base;
+    const delta = v - base;
+    document.querySelector(`.inc-delta[data-idx="${idx}"]`).textContent = (delta>=0?'+':'') + fmtKwp(delta) + ' kWp';
+    recalcularSimulacion();
+  });
+});
+
+function recalcularSimulacion(){
+  let sumaNuevos = 0;
+  document.querySelectorAll('.new-kwp').forEach(inp=>{ sumaNuevos += parseFloat(inp.value) || 0; });
+  let sumaIncrementos = 0;
+  document.querySelectorAll('.inc-kwp').forEach((inp, idx)=>{
+    const base = incrementosBase[idx].actual;
+    const v = parseFloat(inp.value) || base;
+    sumaIncrementos += Math.max(0, v - base);
+  });
+
+  const totalPropuesto = totalActual + sumaNuevos + sumaIncrementos;
+  const incrementoTotal = sumaNuevos + sumaIncrementos;
+  const pctIncremento = (incrementoTotal / totalActual) * 100;
+  const coste = incrementoTotal * 1000;
+
+  document.getElementById('sim-actual').textContent = fmtKwp(totalActual);
+  document.getElementById('sim-nuevo').textContent = fmtKwp(totalPropuesto);
+  document.getElementById('sim-incremento').textContent = fmtKwp(incrementoTotal) + ' (' + pctIncremento.toFixed(1) + '%)';
+  document.getElementById('sim-coste').textContent = fmtEur(coste);
+
+  const meterFill = Math.min(100, (totalPropuesto / (totalActual*1.3)) * 100);
+  const meterDiv = document.getElementById('sim-meter');
+  meterDiv.querySelector('div').style.width = meterFill + '%';
+
+  const umbral = totalActual * 0.10;
+  const cumplePotencia = incrementoTotal >= umbral;
+  const numNuevosSolicitantes = 5; // fijo: son los 5 CUPs nuevos de la tabla
+  const cumpleNumero = numNuevosSolicitantes >= 10;
+
+  let statusHtml = '';
+  if (cumplePotencia){
+    statusHtml += `<span class="status-pill ok">✓ Incremento de potencia (${fmtKwp(incrementoTotal)} kWp) cumple el mínimo del 10% (${fmtKwp(umbral)} kWp)</span> `;
+  } else {
+    statusHtml += `<span class="status-pill warn">✗ Incremento de potencia (${fmtKwp(incrementoTotal)} kWp) por debajo del mínimo del 10% (${fmtKwp(umbral)} kWp)</span> `;
+  }
+  statusHtml += `<span class="status-pill warn" style="margin-top:6px; display:inline-flex;">✗ Solo hay 5 nuevos solicitantes; la norma interna exige al menos 10</span>`;
+  document.getElementById('sim-status').innerHTML = statusHtml;
+}
+recalcularSimulacion();
+</script>
+</body>
+</html>
